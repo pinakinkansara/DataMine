@@ -17,7 +17,6 @@ import javax.lang.model.element.Element;
 import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.Modifier;
 import javax.lang.model.element.TypeElement;
-import javax.tools.Diagnostic;
 
 @SupportedAnnotationTypes({"com.mastercard.www.library.DataMine"})
 @SupportedSourceVersion(SourceVersion.RELEASE_7)
@@ -57,12 +56,6 @@ public class DataMineProcessor extends AbstractProcessor{
                 return false;
            }
        }
-        try {
-            generateValidatorClass(element1);
-            processingOver = true;
-        } catch (IOException e) {
-            processingEnv.getMessager().printMessage(Diagnostic.Kind.ERROR,e.toString());
-        }
        return true;
     }
 
