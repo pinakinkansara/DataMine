@@ -19,9 +19,6 @@ import javax.lang.model.element.Modifier;
 import javax.lang.model.element.TypeElement;
 import javax.tools.Diagnostic;
 
-/**
- * Created by e064173 on 10/10/2017.
- */
 @SupportedAnnotationTypes({"com.mastercard.www.library.DataMine"})
 @SupportedSourceVersion(SourceVersion.RELEASE_7)
 public class DataMineProcessor extends AbstractProcessor{
@@ -41,14 +38,8 @@ public class DataMineProcessor extends AbstractProcessor{
             ProcessorUtil.init(processingEnv);
         }
 
-        if(!processAnnotation(roundEnvironment)){
-            return processingOver;
-        }
+        processAnnotation(roundEnvironment);
 
-        if(roundEnvironment.processingOver()){
-
-
-        }
         return processingOver;
     }
 
@@ -56,16 +47,15 @@ public class DataMineProcessor extends AbstractProcessor{
        Set<? extends Element> elements = roundEnvironment.getElementsAnnotatedWith(DataMine.class);
 
        if(elements == null || elements.isEmpty()){
+           ProcessorUtil.logWarning("No Annotation found with @DataMine");
            return true;
        }
 
-       Element element1 = null;
        for(Element element : elements){
            if(element.getKind() != ElementKind.CLASS){
                 ProcessorUtil.logError("Class should be annotated with @Validator.");
                 return false;
            }
-           element1 = element;
        }
         try {
             generateValidatorClass(element1);
