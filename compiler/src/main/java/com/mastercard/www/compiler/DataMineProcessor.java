@@ -27,11 +27,14 @@ import javax.tools.Diagnostic;
 public class DataMineProcessor extends AbstractProcessor{
 
     private static final ClassName contextClass= ClassName.get("android.content","Context");
+    private static final ClassName stringClass= ClassName.get("java.lang","String");
+    private static final ClassName sharePreferenceClass= ClassName.get("android.content","SharedPreferences");
     private static final String CLASS_NAME_PREFERENCE_REPOSITORY = "PreferenceRepository";
     private static final String PACKAGE_NAME = "com.datamine.www";
 
 
     private List<MethodSpec> mInstanceMethodSpecs = new ArrayList<>();
+    private List<MethodSpec> mMethodSpecs = new ArrayList<>();
     private List<FieldSpec> mFieldSpecs = new ArrayList<>();
 
     private boolean processingOver = false;
@@ -77,19 +80,46 @@ public class DataMineProcessor extends AbstractProcessor{
                 ProcessorUtil.logError("Class should be annotated with @DataMine.");
                 return false;
            }
-       }
 
-       if(!addField()){
-           return false;
        }
 
        if(!generatePreferenceRepositoryConstructor()){
            return false;
        }
+
+        if(!addField()){
+            return false;
+        }
+
+        if(!generateMethods()){
+            return false;
+        }
        return true;
     }
 
+    /**
+     * Declare method for generated class
+     * @return
+     */
+    private boolean generateMethods() {
+        //GET SHARE PREFERENCES
+        MethodSpec.Builder getSharedPreferences = MethodSpec.methodBuilder("getSharedPreferences");
+        getSharedPreferences.addModifiers(Modifier.PRIVATE);
+        getSharedPreferences.returns(sharePreferenceClass);
+        getSharedPreferences.addStatement("return $N.getSharedPreferences($N,$L)","mContext","mFileName",0);
+        mMethodSpecs.add(getSharedPreferences.build());
+
+        return true;
+    }
+
+    /**
+     * Declare class level fields for PreferenceRepository.
+     * @return
+     */
     private boolean addField(){
+        FieldSpec.Builder fileName = FieldSpec.builder(stringClass,"mFileName",Modifier.PRIVATE);
+        mFieldSpecs.add(fileName.build());
+
         FieldSpec.Builder context = FieldSpec.builder(contextClass,"mContext",Modifier.PRIVATE);
         mFieldSpecs.add(context.build());
         return true;
@@ -101,7 +131,6 @@ public class DataMineProcessor extends AbstractProcessor{
     private void createPreferenceRepository() throws IOException {
         TypeSpec.Builder classBuilder = TypeSpec.classBuilder(CLASS_NAME_PREFERENCE_REPOSITORY);
         classBuilder.addModifiers(Modifier.PUBLIC);
-        classBuilder.addField(contextClass,"mContext",Modifier.PRIVATE);
 
         //Add fields to the class
         for(FieldSpec spec : mFieldSpecs){
@@ -114,6 +143,9 @@ public class DataMineProcessor extends AbstractProcessor{
         }
 
         //Add methods to the class
+        for(MethodSpec methodSpec : mMethodSpecs){
+            classBuilder.addMethod(methodSpec);
+        }
 
         //writing file
         ProcessorUtil.generateFile(classBuilder.build(), PACKAGE_NAME);
@@ -127,9 +159,9 @@ public class DataMineProcessor extends AbstractProcessor{
         MethodSpec.Builder constructor = MethodSpec.constructorBuilder();
         constructor.addModifiers(Modifier.PUBLIC);
         constructor.addParameter(contextClass,"context");
-        constructor.addCode("mContext = context;" +
-                "\n");
+        constructor.addStatement("$N = $N","mContext","context");
         mInstanceMethodSpecs.add(constructor.build());
         return true;
     }
+
 }
