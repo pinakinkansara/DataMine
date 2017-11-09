@@ -1,6 +1,7 @@
-package com.mastercard.www.compiler;
+package com.datamine.www.compiler;
 
-import com.mastercard.www.library.DataMine;
+import com.datamine.www.library.DataKey;
+import com.datamine.www.library.DataMine;
 import com.squareup.javapoet.ClassName;
 import com.squareup.javapoet.FieldSpec;
 import com.squareup.javapoet.MethodSpec;
@@ -22,7 +23,8 @@ import javax.lang.model.element.Modifier;
 import javax.lang.model.element.TypeElement;
 import javax.tools.Diagnostic;
 
-@SupportedAnnotationTypes({"com.mastercard.www.library.DataMine"})
+@SupportedAnnotationTypes({"com.datamine.www.library.DataMine",
+"com.datamine.www.library.DataKey"})
 @SupportedSourceVersion(SourceVersion.RELEASE_7)
 public class DataMineProcessor extends AbstractProcessor{
 
@@ -75,12 +77,16 @@ public class DataMineProcessor extends AbstractProcessor{
            return true;
        }
 
+       ProcessorUtil.logWarning("Annotated Class Count :- "+elements.size());
        for(Element element : elements){
            if(element.getKind() != ElementKind.CLASS){
                 ProcessorUtil.logError("Class should be annotated with @DataMine.");
                 return false;
            }
 
+           if(!processClassFields((TypeElement) element)){
+               return false;
+           }
        }
 
        if(!generatePreferenceRepositoryConstructor()){
@@ -98,6 +104,28 @@ public class DataMineProcessor extends AbstractProcessor{
     }
 
     /**
+     * Process fields declared within class
+     * @param element
+     * @return
+     */
+    public boolean processClassFields(TypeElement element){
+        List<? extends Element> fields = element.getEnclosedElements();
+        if(fields == null || fields.isEmpty()){
+            ProcessorUtil.logWarning("No Class Field declared.");
+            return true;
+        }
+        ProcessorUtil.logWarning("Class Field Count :- "+fields.size());
+        for(Element field : fields){
+            final DataKey dataKey = field.getAnnotation(DataKey.class);
+            if(dataKey != null){
+                ProcessorUtil.logWarning("Key Name : "+dataKey.key());
+            }
+            ProcessorUtil.logWarning("Field name "+field.getSimpleName());
+        }
+        return true;
+    }
+
+    /**
      * Declare method for generated class
      * @return
      */
@@ -109,6 +137,27 @@ public class DataMineProcessor extends AbstractProcessor{
         getSharedPreferences.addStatement("return $N.getSharedPreferences($N,$L)","mContext","mFileName",0);
         mMethodSpecs.add(getSharedPreferences.build());
 
+
+        //PUT STRING METHOD
+        MethodSpec.Builder putStringMethod = MethodSpec.methodBuilder("putString");
+        putStringMethod.addModifiers(Modifier.PRIVATE);
+        putStringMethod.addParameter(stringClass,"key");
+        putStringMethod.addParameter(stringClass,"value");
+        putStringMethod.addStatement("$T sharePreference = getSharedPreferences()",sharePreferenceClass);
+        putStringMethod.addStatement("$T.Editor editor = sharePreference.edit()",sharePreferenceClass);
+        putStringMethod.addStatement("editor.putString($N,$N)","key","value");
+        putStringMethod.addStatement("editor.apply()");
+        mMethodSpecs.add(putStringMethod.build());
+
+        //GET STRING METHOD
+        MethodSpec.Builder getStringMethod = MethodSpec.methodBuilder("getString");
+        getStringMethod.addModifiers(Modifier.PRIVATE);
+        getStringMethod.returns(stringClass);
+        getStringMethod.addParameter(stringClass,"key");
+        getStringMethod.addParameter(stringClass,"value");
+        getStringMethod.addStatement("$T sharePreference = getSharedPreferences()",sharePreferenceClass);
+        getStringMethod.addStatement("return sharePreference.getString($N,$N)","key","value");
+        mMethodSpecs.add(getStringMethod.build());
         return true;
     }
 
