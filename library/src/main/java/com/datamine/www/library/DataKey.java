@@ -1,11 +1,9 @@
-package com.mastercard.www.library;
+package com.datamine.www.library;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
-
-import javax.lang.model.element.Element;
 
 /**
  * Created by e064173 on 09/11/17.

@@ -1,4 +1,4 @@
-package com.mastercard.www.aprocessor;
+package com.datamine.www.aprocessor;
 
 import android.content.Context;
 import android.support.test.InstrumentationRegistry;

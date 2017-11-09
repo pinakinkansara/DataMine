@@ -1,9 +1,9 @@
-package com.mastercard.www.aprocessor;
+package com.datamine.www.aprocessor;
 
 import android.content.Context;
 
-import com.mastercard.www.library.DataKey;
-import com.mastercard.www.library.DataMine;
+import com.datamine.www.library.DataKey;
+import com.datamine.www.library.DataMine;
 
 @DataMine(fileName = "preference_test",mode = Context.MODE_PRIVATE)
 public class PreferenceData {

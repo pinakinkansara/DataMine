@@ -1,4 +1,4 @@
-package com.mastercard.www.compiler;
+package com.datamine.www.compiler;
 
 import com.squareup.javapoet.JavaFile;
 import com.squareup.javapoet.TypeSpec;

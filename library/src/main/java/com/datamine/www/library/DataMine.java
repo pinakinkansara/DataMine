@@ -1,4 +1,4 @@
-package com.mastercard.www.library;
+package com.datamine.www.library;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;

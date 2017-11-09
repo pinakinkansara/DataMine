@@ -1,4 +1,4 @@
-package com.mastercard.www.aprocessor;
+package com.datamine.www.aprocessor;
 
 import org.junit.Test;
 
