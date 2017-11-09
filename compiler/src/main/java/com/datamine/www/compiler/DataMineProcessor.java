@@ -110,7 +110,7 @@ public class DataMineProcessor extends AbstractProcessor{
      */
     public boolean processClassFields(TypeElement element){
         List<? extends Element> fields = element.getEnclosedElements();
-        if(fields == null || fields.isEmpty()){
+        if(fields == null || fields.isEmpty() || fields.size()<=1){
             ProcessorUtil.logWarning("No Class Field declared.");
             return true;
         }
@@ -118,9 +118,14 @@ public class DataMineProcessor extends AbstractProcessor{
         for(Element field : fields){
             final DataKey dataKey = field.getAnnotation(DataKey.class);
             if(dataKey != null){
-                ProcessorUtil.logWarning("Key Name : "+dataKey.key());
+                ProcessorUtil.logWarning("Field name "+field.getSimpleName());
+                if(dataKey.key().length() == 0){
+                    ProcessorUtil.logError("key must not be null "+field.getSimpleName()
+                    +" "+element.getSimpleName());
+                    return false;
+                }
             }
-            ProcessorUtil.logWarning("Field name "+field.getSimpleName());
+
         }
         return true;
     }
@@ -158,6 +163,50 @@ public class DataMineProcessor extends AbstractProcessor{
         getStringMethod.addStatement("$T sharePreference = getSharedPreferences()",sharePreferenceClass);
         getStringMethod.addStatement("return sharePreference.getString($N,$N)","key","value");
         mMethodSpecs.add(getStringMethod.build());
+
+
+        //PUT INT METHOD
+        MethodSpec.Builder putIntMethod = MethodSpec.methodBuilder("putInt");
+        putIntMethod.addModifiers(Modifier.PRIVATE);
+        putIntMethod.addParameter(stringClass,"key");
+        putIntMethod.addParameter(int.class,"value");
+        putIntMethod.addStatement("$T sharePreference = getSharedPreferences()",sharePreferenceClass);
+        putIntMethod.addStatement("$T.Editor editor = sharePreference.edit()",sharePreferenceClass);
+        putIntMethod.addStatement("editor.putInt($N,$N)","key","value");
+        putIntMethod.addStatement("editor.apply()");
+        mMethodSpecs.add(putIntMethod.build());
+
+        //GET INT METHOD
+        MethodSpec.Builder getIntMethod = MethodSpec.methodBuilder("getInt");
+        getIntMethod.addModifiers(Modifier.PRIVATE);
+        getIntMethod.returns(int.class);
+        getIntMethod.addParameter(stringClass,"key");
+        getIntMethod.addParameter(int.class,"value");
+        getIntMethod.addStatement("$T sharePreference = getSharedPreferences()",sharePreferenceClass);
+        getIntMethod.addStatement("return sharePreference.getInt($N,$N)","key","value");
+        mMethodSpecs.add(getIntMethod.build());
+
+        //PUT LONG METHOD
+        MethodSpec.Builder putLongMethod = MethodSpec.methodBuilder("putLong");
+        putLongMethod.addModifiers(Modifier.PRIVATE);
+        putLongMethod.addParameter(stringClass,"key");
+        putLongMethod.addParameter(long.class,"value");
+        putLongMethod.addStatement("$T sharePreference = getSharedPreferences()",sharePreferenceClass);
+        putLongMethod.addStatement("$T.Editor editor = sharePreference.edit()",sharePreferenceClass);
+        putLongMethod.addStatement("editor.putLong($N,$N)","key","value");
+        putLongMethod.addStatement("editor.apply()");
+        mMethodSpecs.add(putLongMethod.build());
+
+        //GET LONG METHOD
+        MethodSpec.Builder getLongMethod = MethodSpec.methodBuilder("getLong");
+        getLongMethod.addModifiers(Modifier.PRIVATE);
+        getLongMethod.returns(long.class);
+        getLongMethod.addParameter(stringClass,"key");
+        getLongMethod.addParameter(long.class,"value");
+        getLongMethod.addStatement("$T sharePreference = getSharedPreferences()",sharePreferenceClass);
+        getLongMethod.addStatement("return sharePreference.getLong($N,$N)","key","value");
+        mMethodSpecs.add(getLongMethod.build());
+
         return true;
     }
 
