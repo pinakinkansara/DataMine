@@ -122,14 +122,19 @@ public class DataMineProcessor extends AbstractProcessor{
                     +" "+element.getSimpleName());
                     return false;
                 }
+                String fieldType = field.asType().getKind().name();
 
                 //PUT METHOD GENERATION
                 MethodSpec.Builder putFieldMethod = MethodSpec.methodBuilder("put"+field.getSimpleName().toString());
                 putFieldMethod.addModifiers(Modifier.PUBLIC);
-                if(field.asType().getKind().name().equalsIgnoreCase("int")){
+                if(fieldType.equalsIgnoreCase("int")){
                     ProcessorUtil.logWarning("Generating put method for int type");
                     putFieldMethod.addParameter(int.class,field.getSimpleName().toString());
                     putFieldMethod.addStatement("putInt($S,$L)",dataKey.key(),field.getSimpleName().toString());
+                }else{
+                    ProcessorUtil.logWarning("Generating put method for String type");
+                    putFieldMethod.addParameter(stringClass,field.getSimpleName().toString());
+                    putFieldMethod.addStatement("putString($S,$L)",dataKey.key(),field.getSimpleName().toString());
                 }
                 mInstanceMethodSpecs.add(putFieldMethod.build());
 
@@ -137,10 +142,15 @@ public class DataMineProcessor extends AbstractProcessor{
                 MethodSpec.Builder getFieldMethod = MethodSpec.methodBuilder("get"+field.getSimpleName().toString());
                 getFieldMethod.addModifiers(Modifier.PUBLIC);
                 getFieldMethod.returns(ClassName.get(field.asType()));
-                if(field.asType().getKind().name().equalsIgnoreCase("int")){
+
+                if(fieldType.equalsIgnoreCase("int")){
                     ProcessorUtil.logWarning("Generating get method for int type");
                     getFieldMethod.addParameter(int.class,"defaultValue");
                     getFieldMethod.addStatement("return getInt($S,$L)",dataKey.key(),"defaultValue");
+                }else {
+                    ProcessorUtil.logWarning("Generating get method for String type");
+                    getFieldMethod.addParameter(stringClass,"defaultValue");
+                    getFieldMethod.addStatement("return getString($S,$L)",dataKey.key(),"defaultValue");
                 }
                 mInstanceMethodSpecs.add(getFieldMethod.build());
             }
