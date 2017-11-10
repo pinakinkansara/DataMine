@@ -15,8 +15,6 @@ import java.util.Set;
 import javax.annotation.processing.AbstractProcessor;
 import javax.annotation.processing.RoundEnvironment;
 import javax.annotation.processing.SupportedAnnotationTypes;
-import javax.annotation.processing.SupportedSourceVersion;
-import javax.lang.model.SourceVersion;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.Modifier;
@@ -25,14 +23,13 @@ import javax.tools.Diagnostic;
 
 @SupportedAnnotationTypes({"com.datamine.www.library.DataMine",
 "com.datamine.www.library.DataKey"})
-@SupportedSourceVersion(SourceVersion.RELEASE_7)
 public class DataMineProcessor extends AbstractProcessor{
 
     private static final ClassName contextClass= ClassName.get("android.content","Context");
     private static final ClassName stringClass= ClassName.get("java.lang","String");
     private static final ClassName sharePreferenceClass= ClassName.get("android.content","SharedPreferences");
     private static final String CLASS_NAME_PREFERENCE_REPOSITORY = "PreferenceRepository";
-    private static final String PACKAGE_NAME = "com.datamine.www";
+    private static final String PACKAGE_NAME = "com.datamine.www.aprocessor";
 
 
     private List<MethodSpec> mInstanceMethodSpecs = new ArrayList<>();
@@ -40,19 +37,17 @@ public class DataMineProcessor extends AbstractProcessor{
     private List<FieldSpec> mFieldSpecs = new ArrayList<>();
 
     private boolean processingOver = false;
-
-    @Override
-    public SourceVersion getSupportedSourceVersion() {
-        return SourceVersion.latestSupported();
-    }
+    private int round = -1;
 
 
     @Override
     public boolean process(Set<? extends TypeElement> set, RoundEnvironment roundEnvironment) {
+        round++;
 
-        if(!ProcessorUtil.isInitialized()){
+        if(round == 0){
             ProcessorUtil.init(processingEnv);
         }
+        ProcessorUtil.logWarning("Processing round : "+round);
 
         if(!processAnnotation(roundEnvironment)){
             return processingOver;
@@ -60,8 +55,20 @@ public class DataMineProcessor extends AbstractProcessor{
 
         if(roundEnvironment.processingOver()){
             try {
+                if(!generatePreferenceRepositoryConstructor()){
+                    return false;
+                }
+
+                if(!addField()){
+                    return false;
+                }
+
+                if(!generateMethods()){
+                    return false;
+                }
                 createPreferenceRepository();
                 processingOver = true;
+                ProcessorUtil.logWarning("Preference Repository generated :-)");
             } catch (IOException e) {
                 processingEnv.getMessager().printMessage(Diagnostic.Kind.ERROR, e.toString());
             }
@@ -79,6 +86,7 @@ public class DataMineProcessor extends AbstractProcessor{
 
        ProcessorUtil.logWarning("Annotated Class Count :- "+elements.size());
        for(Element element : elements){
+           ProcessorUtil.logWarning("Class Name : "+element.getSimpleName());
            if(element.getKind() != ElementKind.CLASS){
                 ProcessorUtil.logError("Class should be annotated with @DataMine.");
                 return false;
@@ -88,18 +96,6 @@ public class DataMineProcessor extends AbstractProcessor{
                return false;
            }
        }
-
-       if(!generatePreferenceRepositoryConstructor()){
-           return false;
-       }
-
-        if(!addField()){
-            return false;
-        }
-
-        if(!generateMethods()){
-            return false;
-        }
        return true;
     }
 
@@ -109,6 +105,7 @@ public class DataMineProcessor extends AbstractProcessor{
      * @return
      */
     public boolean processClassFields(TypeElement element){
+        ProcessorUtil.logWarning("Getting element for class : "+element.getSimpleName());
         List<? extends Element> fields = element.getEnclosedElements();
         if(fields == null || fields.isEmpty() || fields.size()<=1){
             ProcessorUtil.logWarning("No Class Field declared.");
@@ -119,11 +116,33 @@ public class DataMineProcessor extends AbstractProcessor{
             final DataKey dataKey = field.getAnnotation(DataKey.class);
             if(dataKey != null){
                 ProcessorUtil.logWarning("Field name "+field.getSimpleName());
+                ProcessorUtil.logWarning("Field type "+field.asType().getKind().name());
                 if(dataKey.key().length() == 0){
                     ProcessorUtil.logError("key must not be null "+field.getSimpleName()
                     +" "+element.getSimpleName());
                     return false;
                 }
+
+                //PUT METHOD GENERATION
+                MethodSpec.Builder putFieldMethod = MethodSpec.methodBuilder("put"+field.getSimpleName().toString());
+                putFieldMethod.addModifiers(Modifier.PUBLIC);
+                if(field.asType().getKind().name().equalsIgnoreCase("int")){
+                    ProcessorUtil.logWarning("Generating put method for int type");
+                    putFieldMethod.addParameter(int.class,field.getSimpleName().toString());
+                    putFieldMethod.addStatement("putInt($S,$L)",dataKey.key(),field.getSimpleName().toString());
+                }
+                mInstanceMethodSpecs.add(putFieldMethod.build());
+
+                //GET METHOD GENERATION
+                MethodSpec.Builder getFieldMethod = MethodSpec.methodBuilder("get"+field.getSimpleName().toString());
+                getFieldMethod.addModifiers(Modifier.PUBLIC);
+                getFieldMethod.returns(ClassName.get(field.asType()));
+                if(field.asType().getKind().name().equalsIgnoreCase("int")){
+                    ProcessorUtil.logWarning("Generating get method for int type");
+                    getFieldMethod.addParameter(int.class,"defaultValue");
+                    getFieldMethod.addStatement("return getInt($S,$L)",dataKey.key(),"defaultValue");
+                }
+                mInstanceMethodSpecs.add(getFieldMethod.build());
             }
 
         }
